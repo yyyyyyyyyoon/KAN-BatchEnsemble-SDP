@@ -13,7 +13,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
 from preprocess import preprocess_data
 from model import build_kan_ensemble_model
 
-# 평가 지표 계산 함수 정의
+# 평가 지표 계산
 def evaluate_metrics(y_true, y_pred):
     cm = confusion_matrix(y_true, y_pred)
     TP = cm[1, 1] if cm.shape == (2, 2) else 0
@@ -33,16 +33,14 @@ def evaluate_metrics(y_true, y_pred):
         "PD": PD,
         "PF": PF,
         "FIR": FIR,
-        "Balance": Balance,
-        "Accuracy": acc,
-        "F1": f1
+        "Balance": Balance
     }
 
 # 기본 설정
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 k = 4  # BatchEnsemble 크기
 batch_size = 128
-epochs = 10
+epochs = 50
 
 def main():
     # 1. CSV 경로 받아오기
@@ -63,11 +61,12 @@ def main():
     X_all = np.array(splits[dataset_name]["X_train"])
     y_all = np.array(splits[dataset_name]["y_train"], dtype=int)
 
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    kf = KFold(n_splits=10, shuffle=True, random_state=42)
     all_metrics = []
+    all_fold_metrics = []
 
     for fold, (train_idx, test_idx) in enumerate(kf.split(X_all)):
-        print(f"\n[Fold {fold + 1}/10]")
+        print(f"\n[Fold {fold + 1}/{kf.n_splits}]")
 
         # Fold별 데이터 나누기
         X_tr, X_te = X_all[train_idx], X_all[test_idx]
@@ -84,13 +83,23 @@ def main():
         test_loader = DataLoader(TensorDataset(X_te_tensor, y_te_tensor), batch_size=batch_size)
 
         # 모델 생성
-        model = build_kan_ensemble_model(input_dim=X_tr.shape[1], output_dim=1, k=k).to(device)
+        model = build_kan_ensemble_model(
+            input_dim=X_tr.shape[1],
+            output_dim=1,
+            k=k,
+            d_block=128,
+            n_blocks=3,
+            degree=3
+        )
         criterion = torch.nn.BCEWithLogitsLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
+        best_balance = -1
+        best_metrics = None
+
         # 학습
-        model.train()
         for epoch in range(epochs):
+            model.train()
             total_loss = 0
             for xb, yb in train_loader:
                 xb, yb = xb.to(device), yb.to(device)
@@ -100,27 +109,38 @@ def main():
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
-            print(f"[Epoch {epoch + 1}] Loss: {total_loss / len(train_loader):.4f}")
+            avg_loss = total_loss / len(train_loader)
 
-        # 평가
-        model.eval()
-        y_pred_all, y_true_all = [], []
-        with torch.no_grad():
-            for xb, yb in test_loader:
-                xb = xb.to(device)
-                logits = model(xb).squeeze()
-                probs = torch.sigmoid(logits).cpu().numpy()
-                preds = (probs >= 0.5).astype(int)
-                y_pred_all.extend(preds)
-                y_true_all.extend(yb.cpu().numpy())
+            # 평가
+            model.eval()
+            y_pred_all, y_true_all = [], []
+            with torch.no_grad():
+                for xb, yb in test_loader:
+                    xb = xb.to(device)
+                    logits = model(xb).squeeze()
+                    probs = torch.sigmoid(logits).cpu().numpy()
+                    preds = (probs >= 0.5).astype(int)
+                    y_pred_all.extend(preds)
+                    y_true_all.extend(yb.cpu().numpy())
 
-        fold_metrics = evaluate_metrics(y_true_all, y_pred_all)
-        print("Fold Metrics:", fold_metrics)
-        all_metrics.append(fold_metrics)
+            val_metrics = evaluate_metrics(y_true_all, y_pred_all)
 
+            print(f"[Epoch {epoch + 1}] Loss: {avg_loss:.4f} | "
+                  f"PD: {val_metrics['PD']:.4f}, PF: {val_metrics['PF']:.4f}, "
+                  f"FIR: {val_metrics['FIR']:.4f}, Balance: {val_metrics['Balance']:.4f}")
+
+            # Best Balance 기준으로 저장
+            if val_metrics["Balance"] > best_balance:
+                best_balance = val_metrics["Balance"]
+                best_metrics = val_metrics
+
+        # Fold 결과 저장 (Best 에폭 기준)
+        all_fold_metrics.append(best_metrics)
+
+    # 전체 Fold 끝난 후 평균 성능 출력
     print("\n=== [최종 평균 성능] ===")
-    df = pd.DataFrame(all_metrics)
-    print(df.mean())
+    df_metrics = pd.DataFrame(all_fold_metrics)
+    print(df_metrics.mean())
 
 if __name__ == "__main__":
     main()

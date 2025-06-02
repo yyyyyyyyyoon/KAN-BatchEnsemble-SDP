@@ -102,8 +102,18 @@ class LinearEfficientEnsemble(nn.Module):
                 self.bias.copy_(bias_init)
 
     def forward(self, x: Tensor) -> Tensor:
-        # x.shape == (B, K, D)
-        assert x.ndim == 3
+        # x.shape == (B*K, D)
+        assert x.ndim == 2
+
+        B_times_K, D = x.shape
+        K = self.k
+        assert D == self.in_features
+        assert B_times_K % K == 0, "입력 배치 크기가 K로 나누어 떨어지지 않습니다"
+
+        B = B_times_K // K
+
+        # (B*K, D) → (B, K, D)
+        x = x.view(B, K, D)
 
         # >>> The equation (5) from the BatchEnsemble paper (arXiv v2).
         if self.r is not None:
@@ -115,6 +125,8 @@ class LinearEfficientEnsemble(nn.Module):
 
         if self.bias is not None:
             x = x + self.bias
+
+        x = x.view(B * K, -1)
         return x
 
 
@@ -164,7 +176,10 @@ class KANLayer(nn.Module):
         self.linear = nn.Linear(in_features, out_features, bias=bias)
 
     def forward(self, x: Tensor) -> Tensor:
-        B, D = x.shape
+        if x.ndim == 3:
+            B, K, D = x.shape
+            x = x.view(B * K, D)
+
         basis_list = []
         for d in range(self.degree + 1):
             basis_list.append(x ** d)  # (B, D)
@@ -233,8 +248,21 @@ class KANBatchEnsembleWrapper(nn.Module): # 입력 확장, 결과 평균
 
         return y_mean
 
-def build_kan_ensemble_model(input_dim: int, output_dim: int, k: int) -> nn.Module:
-    model = KAN(d_in=input_dim, d_out=output_dim, n_blocks=3, d_block=128, degree=3)
+def build_kan_ensemble_model(
+    input_dim: int,
+    output_dim: int,
+    k: int,
+    d_block: int,
+    n_blocks: int,
+    degree: int
+) -> nn.Module:
+    model = KAN(
+        d_in=input_dim,
+        d_out=output_dim,
+        n_blocks=n_blocks,
+        d_block=d_block,
+        degree=degree
+    )
     make_efficient_ensemble(
         model,
         LinearEfficientEnsemble,
@@ -245,6 +273,7 @@ def build_kan_ensemble_model(input_dim: int, output_dim: int, k: int) -> nn.Modu
         scaling_init="random-signs"
     )
     return KANBatchEnsembleWrapper(model, k=k)
+
 
 def get_n_parameters(m: nn.Module):
     return sum(x.numel() for x in m.parameters() if x.requires_grad)
