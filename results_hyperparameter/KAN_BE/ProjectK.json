@@ -1,0 +1,18 @@
+{
+  "dataset": "ProjectK",
+  "adjusted_score": 0.9704094103749514,
+  "PD": 0.9919999920640001,
+  "PF": 0.030855539928673858,
+  "FIR": 0.8493150626759243,
+  "Balance": 0.9774604295597049,
+  "params": {
+    "d_block": 256,
+    "n_blocks": 1,
+    "degree": 4,
+    "k": 8,
+    "batch_size": 64,
+    "lr": 0.008299537163546991
+  },
+  "Model_Params": 7845,
+  "InferenceTotal(ms)": 22.669749577840168
+}

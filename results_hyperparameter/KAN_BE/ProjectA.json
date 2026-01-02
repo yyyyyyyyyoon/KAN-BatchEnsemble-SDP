@@ -1,0 +1,18 @@
+{
+  "dataset": "ProjectA",
+  "adjusted_score": 0.9704978117240323,
+  "PD": 0.9999999642857155,
+  "PF": 0.041118420985002596,
+  "FIR": 0.5283018768244929,
+  "Balance": 0.9709248856898105,
+  "params": {
+    "d_block": 64,
+    "n_blocks": 3,
+    "degree": 2,
+    "k": 2,
+    "batch_size": 64,
+    "lr": 0.0041669946348552155
+  },
+  "Model_Params": 10431,
+  "InferenceTotal(ms)": 23.756160100301106
+}

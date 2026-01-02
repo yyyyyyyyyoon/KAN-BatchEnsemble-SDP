@@ -1,0 +1,18 @@
+{
+  "dataset": "ProjectL",
+  "score": 0.9687870247799252,
+  "PD": 0.9999999600000016,
+  "PF": 0.011714589976874771,
+  "FIR": 0.6944444251543216,
+  "Balance": 0.9917165339884836,
+  "params": {
+    "d_block": 128,
+    "n_blocks": 2,
+    "degree": 2,
+    "lr": 0.007579592653346103,
+    "batch_size": 64
+  },
+  "Model_Params": 93625,
+  "Single_Params": 18725,
+  "InferenceTotal(ms)": 49.75762176513672
+}

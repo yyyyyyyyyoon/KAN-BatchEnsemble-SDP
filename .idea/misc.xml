@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="TabR" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="TabR" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="tabr2" project-jdk-type="Python SDK" />
 </project>

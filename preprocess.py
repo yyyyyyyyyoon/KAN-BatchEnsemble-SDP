@@ -52,3 +52,14 @@ def preprocess_data(paths):
             "y_train": y_train_resampled, "y_test": y_test
         }
     return splits
+
+if __name__ == "__main__":
+    from collections import Counter
+
+    splits = preprocess_data("data/AUDI/ProjectA.csv")
+
+    y_train = splits["ProjectA"]["y_train"]
+    y_test = splits["ProjectA"]["y_test"]
+
+    print("✅ Train 오버샘플:", Counter(y_train))
+    print("✅ Test 셋:", Counter(y_test))
