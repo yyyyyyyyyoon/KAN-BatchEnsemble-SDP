@@ -17,6 +17,16 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import confusion_matrix
 
+def set_seed(seed: int):
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 # ===== 기본 하이퍼파라미터 =====
 DEFAULTS = {
     "epochs": 50,
@@ -24,7 +34,7 @@ DEFAULTS = {
     "seed": 42,
     "hidden1": 128,
     "hidden2": 64,
-    "lr": 1e-3,
+    "lr": 1e-4,
     "batch_size": 128,   # train/test 둘 다 동일 배치 사용
 }
 
@@ -199,23 +209,21 @@ def run_final_mlp_experiment(
 
     # 결과 평균
     df = pd.DataFrame(all_fold_metrics)
-    mean_metrics = df.mean(numeric_only=True)
+    mean = df.mean(numeric_only=True)
 
     print("\n=== [최종 평균 성능] ===")
-    print(f"PD: {mean_metrics['PD']:.4f}, PF: {mean_metrics['PF']:.4f}, "
-          f"FIR: {mean_metrics['FIR']:.4f}, Balance: {mean_metrics['Balance']:.4f}")
-    print(f"Inference: {mean_metrics['InferenceTime(ms_per_sample)']:.3f} ms/sample | "
-          f"{mean_metrics['InferenceTotal(ms)']:.1f} ms total | "
-          f"Params≈{int(mean_metrics['Params']):,}")
+    print(f"PD={mean['PD']:.4f} PF={mean['PF']:.4f} FIR={mean['FIR']:.4f} Bal={mean['Balance']:.4f}")
+    print(
+        f"Inference: {mean['InferenceTime(ms_per_sample)']:.3f} ms/sample | "
+        f"{mean['InferenceTotal(ms)']:.1f} ms total"
+    )
 
-    df_with_avg = pd.concat([df, pd.DataFrame([mean_metrics], index=["Average"])])
-
-    # 결과 저장
-    os.makedirs("MLP", exist_ok=True)
-    result_path = f"MLP/{dataset_name}_metrics.csv"
-    df_with_avg.to_csv(result_path, index=True)
-
-    print(f" 결과 저장 완료: {result_path}")
+    save_dir = os.path.join("results_sdp", "MLP")
+    os.makedirs(save_dir, exist_ok=True)
+    out_path = os.path.join(save_dir, f"{dataset_name}_metrics.csv")
+    df_with_avg = pd.concat([df, pd.DataFrame([mean], index=["Average"])])
+    df_with_avg.to_csv(out_path, index=True)
+    print(f"결과 저장 완료: {out_path}")
 
 # ===== Entry Point =====
 if __name__ == "__main__":

@@ -14,6 +14,16 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import confusion_matrix
 from imblearn.over_sampling import SMOTE
 
+def set_seed(seed: int):
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(PROJECT_ROOT)
 
@@ -29,7 +39,7 @@ DEFAULTS = {
     "seed": 42,
     "hidden1": 128,
     "hidden2": 64,
-    "lr": 1e-3,
+    "lr": 1e-4,
     "batch_size": 128,
     "ensemble_size": 5,
 }

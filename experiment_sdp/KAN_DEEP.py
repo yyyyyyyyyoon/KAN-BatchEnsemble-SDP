@@ -1,4 +1,3 @@
-# 실행 명령어: python kan_deep_final.py data/AEEEM/EQ.csv
 import glob
 import os
 import sys
@@ -15,6 +14,16 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import confusion_matrix
 from imblearn.over_sampling import SMOTE
 
+def set_seed(seed: int):
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(PROJECT_ROOT)
 
@@ -27,7 +36,7 @@ print("GPU 이름:", torch.cuda.get_device_name(0) if torch.cuda.is_available() 
 DEFAULTS = {
     "epochs": 50,
     "n_splits": 10,
-    "seed": 42,
+    "seed": 2026,
     "d_block": 128,
     "n_blocks": 3,
     "degree": 3,

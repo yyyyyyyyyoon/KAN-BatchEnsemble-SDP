@@ -2,8 +2,6 @@ import os
 import sys
 import time
 import glob
-from pathlib import Path
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -15,6 +13,16 @@ from sklearn.metrics import confusion_matrix
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
+def set_seed(seed: int):
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 # KAN 모듈 경로 (필요 시 수정)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from KAN_BE.KAN_BatchEnsemble_model import build_kan_ensemble_model
@@ -23,11 +31,11 @@ from KAN_BE.KAN_BatchEnsemble_model import build_kan_ensemble_model
 DEFAULTS = {
     "epochs": 50,
     "n_splits": 10,
-    "seed": 42,
+    "seed": 2026,
     "d_block": 64,
     "n_blocks": 3,
     "degree": 3,
-    "k": 4,               # BatchEnsemble 내부 전문가 수
+    "k": 5,               # BatchEnsemble 내부 전문가 수
     "batch_size": 128,
     "lr": 1e-3,
 }
@@ -75,6 +83,8 @@ def run_experiment_for_dataset(
     batch_size=DEFAULTS["batch_size"],
     lr=DEFAULTS["lr"],
 ):
+    set_seed(seed)
+
     dataset_name = os.path.splitext(os.path.basename(csv_path))[0]
     print(f"\n===== [{dataset_name}] =====")
 

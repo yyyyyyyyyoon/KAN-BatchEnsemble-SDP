@@ -18,6 +18,16 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.metrics import confusion_matrix
 from KAN_BE.KAN_BatchEnsemble_model import KAN  # KAN 모델 클래스
 
+def set_seed(seed: int):
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 DEFAULTS = {
     "epochs": 50,
     "n_splits": 10,
@@ -25,7 +35,7 @@ DEFAULTS = {
     "d_block": 128,
     "n_blocks": 3,
     "degree": 3,
-    "lr": 1e-3,
+    "lr": 1e-4,
     "batch_size": 128,     # train/test 둘 다 동일 배치 사용
 }
 
@@ -178,19 +188,21 @@ def run_final_kan_experiment(
 
     # 결과 평균
     df = pd.DataFrame(all_fold_metrics)
-    mean_metrics = df.mean(numeric_only=True)
-    mean_ms_per_sample = mean_metrics["InferenceTime(ms_per_sample)"]
+    mean = df.mean(numeric_only=True)
 
     print("\n=== [최종 평균 성능] ===")
-    print(f"PD: {mean_metrics['PD']:.4f}, PF: {mean_metrics['PF']:.4f}, "
-          f"FIR: {mean_metrics['FIR']:.4f}, Balance: {mean_metrics['Balance']:.4f}")
-    print(f"Inference Time: {mean_ms_per_sample:.3f} ms/sample")
+    print(f"PD={mean['PD']:.4f} PF={mean['PF']:.4f} FIR={mean['FIR']:.4f} Bal={mean['Balance']:.4f}")
+    print(
+        f"Inference: {mean['InferenceTime(ms_per_sample)']:.3f} ms/sample | "
+        f"{mean['InferenceTotal(ms)']:.1f} ms total"
+    )
 
-    df_with_avg = pd.concat([df, pd.DataFrame([mean_metrics], index=["Average"])])
-    os.makedirs("sdp_kan", exist_ok=True)
-    result_path = f"sdp_kan/{dataset_name}_metrics.csv"
-    df_with_avg.to_csv(result_path, index=True)
-    print(f" 결과 저장 완료: {result_path}")
+    save_dir = os.path.join("results_sdp", "KAN")
+    os.makedirs(save_dir, exist_ok=True)
+    out_path = os.path.join(save_dir, f"{dataset_name}_metrics.csv")
+    df_with_avg = pd.concat([df, pd.DataFrame([mean], index=["Average"])])
+    df_with_avg.to_csv(out_path, index=True)
+    print(f"결과 저장 완료: {out_path}")
 
 
 # ===== Entry Point =====

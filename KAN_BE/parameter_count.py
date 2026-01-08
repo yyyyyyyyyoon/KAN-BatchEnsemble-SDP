@@ -13,9 +13,9 @@ DEFAULTS = {
     "d_block": 128,
     "n_blocks": 3,
     "degree": 3,
-    "k": 4,               # BatchEnsemble 내부 전문가 수(ensemble size)
+    "k": 5,               # BatchEnsemble 내부 전문가 수(ensemble size)
     "batch_size": 256,
-    "lr": 1e-3,
+    "lr": 1e-4,
     "d_out": 1,
     "target_col": "class",
 }

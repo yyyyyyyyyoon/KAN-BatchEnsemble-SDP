@@ -26,6 +26,16 @@ sys.path.append(PROJECT_ROOT)
 from mlp import MLP
 from KAN_BE.KAN_BatchEnsemble_model import LinearEfficientEnsemble, make_efficient_ensemble
 
+def set_seed(seed: int):
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("CUDA 사용 가능:", torch.cuda.is_available())
 print("GPU 이름:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
@@ -33,10 +43,10 @@ print("GPU 이름:", torch.cuda.get_device_name(0) if torch.cuda.is_available() 
 DEFAULTS = {
     "epochs": 50,
     "n_splits": 10,
-    "seed": 42,
+    "seed": 2026,
     "hidden1": 128,
     "hidden2": 64,
-    "k": 4,
+    "k": 5,
     "batch_size": 128,
     "lr": 1e-3,
 }

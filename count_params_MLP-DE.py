@@ -1,4 +1,4 @@
-# count_params_deepensemble.py
+# count_params_mlp_deepensemble.py
 import os
 import sys
 from glob import glob
@@ -10,16 +10,15 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from KAN_BE.KAN_BatchEnsemble_model import KAN  # KAN base model
+# ✅ 너가 준 MLP 클래스 import (experiment_sdp/mlp.py)
+from experiment_sdp.mlp import MLP
 
-# 기본 하이퍼파라미터(고정값)
+# ===== 고정 하이퍼파라미터 (MLP-DE용) =====
 DEFAULTS = {
-    "ensemble_size": 5,  # ← Deep Ensemble 멤버 수
-    "d_block": 128,
-    "n_blocks": 3,
-    "degree": 3,
-    "d_out": 1,          # 이진 분류 출력
-    # epochs/lr/batch_size 등은 파라미터 수와 무관
+    "ensemble_size": 5,  # Deep Ensemble 멤버 수
+    "hidden1": 128,
+    "hidden2": 64,
+    "d_out": 1,          # (MLP 구현상 출력 1로 고정이지만 로그용)
 }
 
 def count_parameters(model: torch.nn.Module) -> int:
@@ -37,48 +36,46 @@ def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_root = os.path.join(base_dir, "data")
 
-    # 항상 data/**.csv 전부 처리 (인자 무시)
+    # data/**.csv 전부 처리
     csv_paths = sorted(glob(os.path.join(data_root, "**", "*.csv"), recursive=True))
 
     if not csv_paths:
         print(f"⚠️ CSV를 찾지 못했습니다: {data_root}")
         return
 
-    total_counts = []
     ens = DEFAULTS["ensemble_size"]
+    total_counts = []
 
     for csv_path in csv_paths:
         dataset_name = os.path.splitext(os.path.basename(csv_path))[0]
+
         try:
             input_dim = get_input_dim_from_csv(csv_path, target_col="class")
         except Exception as e:
             print(f"❌ {dataset_name}: input_dim 추출 실패 → {e}")
             continue
 
-        # 단일 KAN 모델 생성
-        model = KAN(
-            d_in=input_dim,
-            d_out=DEFAULTS["d_out"],
-            d_block=DEFAULTS["d_block"],
-            n_blocks=DEFAULTS["n_blocks"],
-            degree=DEFAULTS["degree"],
+        # ✅ 단일 MLP 모델 생성 (너 코드와 동일한 생성자 시그니처)
+        model = MLP(
+            input_dim=input_dim,
+            hidden1=DEFAULTS["hidden1"],
+            hidden2=DEFAULTS["hidden2"],
         )
 
         single_params = count_parameters(model)
         total_params = single_params * ens  # Deep Ensemble 총 파라미터
 
         total_counts.append(total_params)
+
         print(
-            f"{dataset_name}: "
-            f"{total_params:,} parameters "
+            f"{dataset_name}: {total_params:,} parameters "
             f"(single={single_params:,}, ensemble_size={ens}, "
-            f"input_dim={input_dim}, d_block={DEFAULTS['d_block']}, "
-            f"n_blocks={DEFAULTS['n_blocks']}, degree={DEFAULTS['degree']})"
+            f"input_dim={input_dim}, hidden1={DEFAULTS['hidden1']}, hidden2={DEFAULTS['hidden2']})"
         )
 
     if total_counts:
         avg_params = sum(total_counts) / len(total_counts)
-        print(f"\n총 {len(total_counts)}개 데이터셋 평균 파라미터 수(Deep Ensemble): {avg_params:,.0f}")
+        print(f"\n총 {len(total_counts)}개 데이터셋 평균 파라미터 수(MLP Deep Ensemble): {avg_params:,.0f}")
 
 if __name__ == "__main__":
     main()
